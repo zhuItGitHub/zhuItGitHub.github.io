@@ -68,7 +68,7 @@ tags:
 * 复制到网页然后点击继续,然后是一堆相关jenkins的选择和配置,博主这里就不写了.不懂的可以直接Google
 
 ---
-**VI : Docker 简单使用命令()**
+**VI : Docker 简单使用命令**
 * **Docker 删除镜像**
 * docker images  查询所有本地镜像
 * docker rmi 镜像ID  可以删除本地镜像
