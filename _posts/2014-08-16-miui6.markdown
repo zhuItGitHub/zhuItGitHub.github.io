@@ -23,7 +23,8 @@ tags:
 
 ## 正文
 
-## 搭建环境: CentOS 7.2 64 位   Docker支持以下的CentOS版本: CentOS 6.5 (64-bit) 或更高的版本
+## 搭建环境: CentOS 7.2 64 位
+## Docker支持以下的CentOS版本: CentOS 6.5 (64-bit) 或更高的版本
                          
      
 ## 步骤:
