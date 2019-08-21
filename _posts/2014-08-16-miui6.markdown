@@ -63,7 +63,7 @@ tags:
 * 此时可以直接通过 ip 方式访问
 * 第一次进入Jenkins页面会提示需要输入管理员密码,网页也有提示密码存在哪里,但是作为一个Java开发来说,这里的坑我踩了好久
 * 如果你直接在linux上想cd 命令进入 (/var/jenkins_home/secrets/initialAdminPassword 服务器文件位置) 会提示--没有这样的文件或目录
-* docker exec -u 0 -it cb3fdd0a0265 /bin/bash  (运行命令:通过容器id 进入容器里的配置文件然后就可以找到initialAdminPassword文件了)
+* docker exec -u 0 -it cb3fdd0a0265(容器id) /bin/bash  (运行命令:通过容器id 进入容器里的配置文件然后就可以找到initialAdminPassword文件了)
 * cat /var/jenkins_home/secrets/initialAdminPassword (上面命令运行完后运行这个命令就能直接看到密码了)
 * 复制到网页然后点击继续,然后是一堆相关jenkins的选择和配置,博主这里就不写了.不懂的可以直接Google
 
