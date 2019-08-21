@@ -23,11 +23,11 @@ tags:
 
 ## 正文
 
-## 搭建环境: CentOS 7.2 64 位                      
+## 搭建环境: CentOS 7.2 64 位                            
      
 ## 步骤:
 
-**ONE :**
+**I :**
 * **JDK的安装--->**
 (因为服务器版本是64位，我希望安装的是1.8的JDK)
 * yum -y list java*  (运行命令查看JDK版本   带**-devel**的安装的是jdk，而不带**-devel**的，实际上安装的是jre)
@@ -35,7 +35,7 @@ tags:
 * Java –version   (验证安装结果)
 
 ---
-**TWO :**
+**II :**
 * **Docker 的安装**
 * 使用 yum 安装 Docker 要求 CentOS 系统的内核版本高于 3.10 ，查看本页面的前提条件来验证你的CentOS 版本是否支持 Docker.  通过 **uname -r** 命令查看你当前的内核版本       
 * yum -y install docker (运行命令安装Docker)
@@ -44,21 +44,21 @@ tags:
 * docker version (可以检查Docker的版本) 
  
 ---
-**THREE :**
+**III :**
 * **通过Docker 拉取Jenkins的镜像**
 * docker search jenkins  (运行命令查询Jenkins所有镜像)  正常情况下第一个就是官方镜像  想了解search出来的镜像的标签的含义可以查询我另外一篇博客
 * docker pull docker.io/jenkins/jenkins  (博主自己拉取的第二个镜像.你可以拉取你想选择的镜像,一般pull 镜像NAME 就可以拉取了,耐心等待拉取.......)   
 * docker images  (拉取完成后,通过此命令查看docker本地的镜像,可以看到我们刚刚拉取的 jenkins 镜像)
 
 ---
-**FOUR :**
+**IV :**
 * **通过Docker启动Jenkins**
 * docker run -d -p 80:8080 -p 50000:50000 -v jenkins:/var/jenkins_home -v /etc/localtime:/etc/localtime --name jenkins docker.io/jenkins
 * 运行上面命令直接启动Jenkins,启动成功后的访问端口就是80,看到一串16进制码就证明启动成功了
 * 
 
 ---
-**FIVE :**
+**V :**
 * **通过浏览器访问Jenkins**
 * 此时可以直接通过 ip 方式访问
 * 第一次进入Jenkins页面会提示需要输入管理员密码,网页也有提示密码存在哪里,但是作为一个Java开发来说,这里的坑我踩了好久
@@ -68,13 +68,12 @@ tags:
 * 复制到网页然后点击继续,然后是一堆相关jenkins的选择和配置,博主这里就不写了.不懂的可以直接Google
 
 ---
-**PS : Docker 简单使用命令()**
+**VI : Docker 简单使用命令()**
 * **Docker 删除镜像**
 * docker images  查询所有本地镜像
 * docker rmi 镜像ID  可以删除本地镜像
 * docker rmi -f 镜像ID  删除正在运行的镜像
 * 为什么博主这里要分开写,因为博主自己踩过坑,当时查询Docker删除的时候,网上部分资料没有说明清楚,删除是分镜像和容器两种的,所以在此再啰嗦一下,希望能帮到你们
-
 
 * **Docker 删除容器**
 * docker ps -a  查询所有本地容器(可以查看容器的各项参数,运行状态.容器Id....)
