@@ -48,7 +48,7 @@ tags:
 **THREE :**
 * **通过Docker 拉取Jenkins的镜像**
 * docker search jenkins  (运行命令查询Jenkins所有镜像)  正常情况下第一个就是官方镜像  想了解search出来的镜像的标签的含义可以查询我另外一篇博客
-* docker pull docker.io/jenkins  (拉取你想选择的镜像,一般pull 后面接镜像 NAME 就可以拉取了,耐心等待拉取.......)   
+* docker pull docker.io/jenkins/jenkins  (博主自己拉取的第二个镜像.你可以拉取你想选择的镜像,一般pull 镜像NAME 就可以拉取了,耐心等待拉取.......)   
 * docker images  (拉取完成后,通过此命令查看docker本地的镜像,可以看到我们刚刚拉取的 jenkins 镜像)
 
 ---
