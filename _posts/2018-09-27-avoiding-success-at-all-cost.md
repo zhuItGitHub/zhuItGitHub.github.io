@@ -1,58 +1,33 @@
 ---
 layout: post
-title: "Avoiding success at all cost"
-subtitle: 'Watching "Escape from the Ivory Tower: The Haskell Journey"'
-author: "Hux"
-header-style: text
+title: "MySql 什么情况下不走索引"
+author: "zhuJianJian"
 lang: en
 tags:
-  - Haskell
-  - PL
-  - 笔记
-  - 🇬🇧
+  - MySql
 ---
 
-"Avoiding success at all cost" is the informal motto behinds [Haskell](https://www.haskell.org/). It could be parenthesized in two ways, either "Avoiding (success at all cost)" or "(Avoiding sucess) (at all cost)". 
+### 不走索引的原因
 
-I'm not going to interpret them directly but rather to share some thoughts on "the success vs. costs" basing on my very own understanding and experience.
+#### 1:WHERE字句的查询条件里有不等于号（WHERE column!=…），MYSQL将无法使用索引
 
-### The success vs. cost of language design
+#### 2:类似地，如果WHERE字句的查询条件里使用了函数（如：WHERE DAY(column)=…），MYSQL将无法使用索引
 
-There're always trade offs (or compromises) in any software design, and programming language design has no exceptions.
+#### 3:在JOIN操作中（需要从多个数据表提取数据时），MYSQL只有在主键和外键的数据类型相同时才能使用索引，否则即使建立了索引也不会使用
 
-In other words, all language design decision that made them "successful" i.e. being popular and widely-used in industry or education for some reasons, all comes with their own "costs": being unsafe, limited expressiveness, or having bad performance, etc.
+#### 4:如果WHERE子句的查询条件里使用了比较操作符LIKE和REGEXP，MYSQL只有在搜索模板的第一个字符不是通配符的情况下才能使用索引。比如说，如果查询条件是LIKE 'abc%',MYSQL将使用索引；如果条件是LIKE '%abc'，MYSQL将不使用索引。
 
-Whether or not the "cost" is a problem really depends on scenarios, or their goals. For instances, Python/JavaScript are both very expressive and beginner-friendly by being dynamically-typed, sacrifing the type safety and performance. Java, in constrast, uses a much safer and optimization-friendly type system but being much less expressive. Another typicial comparison would be memory management in programming languages, where languages that are "managed" (by either ARC or Gabage Collector) could be much easier and safer (in terms of memory) for most programmers but also considerred slower than languages that are "closer to the metal". 
+#### 5.在ORDER BY操作中，MYSQL只有在排序条件不是一个查询条件表达式的情况下才使用索引。尽管如此，在涉及多个数据表的查询里，即使有索引可用，那些索引在加快ORDER BY操作方面也没什么作用。
 
-None of these "costs", or "differences", really prevent them from being immortally popular.
+#### 6.如果某个数据列里包含着许多重复的值，就算为它建立了索引也不会有很好的效果。比如说，如果某个数据列里包含了净是些诸如“0/1”或“Y/N”等值，就没有必要为它创建一个索引。
+     
+#### 7.索引有用的情况下就太多了。基本只要建立了索引，除了上面提到的索引不会使用的情况下之外，其他情况只要是使用在WHERE条件里，ORDER BY 字段，联表字段，一般都是有效的。 建立索引要的就是有效果。 不然还用它干吗？ 如果不能确定在某个字段上建立的索引是否有效果，只要实际进行测试下比较下执行时间就知道。
 
-For Haskell, the story becomes quite different: being research-oriented means the goal of this language is to pursue some "ultimate" things: the "ultimate" simplicity of intermediate representation, the "ultimate" type system where safety and expressiveness can coexist, the "ultimate" compilation speed and runtime performance, the "ultimate" concise and elegant concrete syntax, the "ultimate"...I don't know. But it has to be some "ultimate" things that is very difficult, probably endless and impossible, to achieve. 
+#### 8.如果条件中有or(并且其中有or的条件是不带索引的)，即使其中有条件带索引也不会使用(这也是为什么尽量少用or的原因)。注意：要想使用or，又想让索引生效，只能将or条件中的每个列都加上索引
 
-This, as a result, made all language decisions in Haskell became very hard and slow, because **almost nothing can be scarified**. That's why Haskell insisted to be lazy to "guard" the purity regardless of some problems of being "call-by-need"; a decent IO mechanisms is missing in the first 4 yrs after the project's start until P Walder found _Monad_; and the _Type Class_, which is first proposed in P Walder's 1989 paper, spent yrs long to implement and popularize.
+#### 9.如果列类型是字符串，那一定要在条件中将数据使用引号引用起来,否则不使用索引
 
-As a side note though, it doesn't mean there is no compromise in Haskell at all. It's just as minimized as it could be during its progress. When one audience asking why we have Haskell and OCaml, which're quite similar in very high level, both survived, SPJ replies:
+#### 10.如果mysql估计使用全表扫描要比使用索引快,则不使用索引
 
-> There's just a different set of compromises.
-
-### The success vs. cost of language design process
-
-Another common but extremely controversial (if not the most) topics of programming language design is about its design process: Would you prefer dictatorship or a committee (in other words, a dictatorship of many?)? Would you prefer being proprietary or standardized? In which form would you write the standards, in human nature language, pseudo code, or formal semantics? How many and how frequently breaking changes dare you make? Would you let open source community involve in?  
-
-Again, I think there is no THE answer for all those questions. Majority of popular programming languages came and are still on going with very different paths.
-
-Python, whose creater, Guido van Rossum, known as the "Benevolent Dictator For Life" (BDFL), i.e. good kind of dictator, still play the central role (until July 2018) of the Python's development after Python getting popular and adapt a open source and community-based development model. This factor direcly contribute to the fact that Python 3, as a breaking (not completely backward-compatible and not easy to port) but good (in terms of language design and consistency) revision of the language can still be landed, despite of many communities' pressures. There're many language (Ruby, Perl, Elm) also choose to follow this route.
-
-JavaScript, widely known as being created by Brendan Eich in 10 days, in comparision, quickly involved into a committee (TC39) and standardized (ECMAScript) language due to both the open nature of the Web and fast adoption of itself. But Brendan, as the creater, wasn't even powerful enough to push the committee landing ES4, which is also a breaking but much better revision, but ended up with the ES5 (Harmony), a backward-compatible, yet much less ambitious version due to many political "fights" between different parties (e.g. Mozilla, Microsoft, Yahoo etc.) thus the history wasn't changed. Even the latest rising and yearly releasing of the "modern" JavaScript (ES6 or ES2015, 2016, 2017...) are mainly driven by the new generation of committee parties (+ Google, Facebook, Airbnb etc.) and still in a very open and standardized way.
-
-As you can see here, even the history and progress of two rather similar languages can be so different, not to mention more proprietary languages such as Java from Sun/Oracle, C# from Microsoft, OC/Swift from Apple (though the latter was open sourced) or more academia and standardized language like SML and Scheme which both has a standard written in formal semantics.
-
-So it's not not obvious that Haskell, also chose its own unique process to suit its unique goal. Although it backs on academia, it chose a rather practical/less-formal approach to define the language, i.e. the compiler implementation over standardization (plus many "formal" fragments among papers though), which is more like C++/OCaml from this point of view. It has a committee, but instead of being very open and conservative, it's more dictatorial (in terms of average users) and super aggressive in terms of making breaking changes. As a result however, it trained a group of very change-tolerant people in its community...All of these quirks and odds combined works very well and avoid the Haskell "becoming too success too quickly".
-
-
-### End thoughts
-
-To be fair, Haskell has alreay been very "successful" nowdays, in particular academia (for education, sexy type laboratory etc.) but also industry, either being used in real business or being very reputable among programmers (as being both hard and fun).
-
-I am not confident and qualified to say Haskell is success in the right degree at the right time. But it's great to see it, after more than 20 and now almost 30 yrs, slowly figure out its very own way, to "Escape from the Ivory Tower", and keep going beyond.
 
 
