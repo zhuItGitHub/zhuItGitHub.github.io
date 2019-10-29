@@ -1,14 +1,10 @@
 ---
 layout: post
-title: "「知乎」如何通俗地解释停机问题？"
-subtitle: "How to explain the Halting Problem?"
-author: "Hux"
-header-img: "img/post-bg-halting.jpg"
-header-mask: 0.3
+title: "情侣约会可以做的50个项目"
+author: "阿健"
+header-img: "img/life/life1.jpg"
 tags:
-  - 知乎
-  - 计算机科学
-  - 计算理论
+  - 生活
 ---
 
 > 这篇文章转载自[我在知乎上的回答]( https://www.zhihu.com/question/20081359/answer/275107187)
