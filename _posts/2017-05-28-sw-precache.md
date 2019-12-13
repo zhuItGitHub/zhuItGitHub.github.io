@@ -1,256 +1,97 @@
 ---
 layout: post
-title: How does SW-Precache works?
-author: "Hux"
-header-style: text
-lang: en
+title: 戏说消息队列的利弊
+author: "zhuJianJian"
 tags:
-  - Web
-  - PWA
-  - 🇬🇧
----
+  - 队列
+--- 
 
-[_SW-Precache_](https://github.com/GoogleChrome/sw-precache) _is a great Service Worker tool from Google. It is a node module designed to be_ _integrated_ _into your build process and to generate a service worker for you._ _Though_ _you can use sw-precache out of the box, you might still wonder what happens under the hood. There you go, this article is written for you!_
+## 什么是消息队列？
 
-> This post was first published at [Medium](https://medium.com/@Huxpro/how-does-sw-precache-works-2d99c3d3c725)
+小红是小明的姐姐。
 
-## Overview
+小红希望小明多读书，常寻找好书给小明看，之前的方式是这样：小红问小明什么时候有空，把书给小明送去，并亲眼监督小明读完书才走。久而久之，两人都觉得麻烦。
 
-The core files involving in sw-precache are mainly three:
+后来的方式改成了：小红对小明说「我放到书架上的书你都要看」，然后小红每次发现不错的书都放到书架上，小明则看到书架上有书就拿下来看。
 
-```
-service-worker.tmpl  
-lib/  
- ├ sw-precache.js  
- └ functions.js
-```
+书架就是一个消息队列，小红是生产者，小明是消费者。
 
-`sw-precache.js` is the main entry of the module. It reads the configuration, processes parameters, populates the `service-worker.tmpl` template and writes the result into specified file. And`functions.js` is just a module containing bunch of external functions which would be all injected into the generated service worker file as helpers.
+这就是消息队列。当然，也有侧重点，个人认为消息队列的主要特点是异步处理，主要目的是减少请求响应时间和解耦。所以主要的使用场景就是将比较耗时而且不需要即时（同步）返回结果的操作作为消息放入消息队列。同时由于使用了消息队列，只要保证消息格式不变，消息的发送方和接收方并不需要彼此联系，也不需要受对方的影响，即解耦和。
 
-Since the end effect of sw-precache is performed by the generated service worker file in the runtime, a easy way to get an idea of what happens is by checking out source code inside `service-worker.tmpl` . It’s not hard to understand the essentials and I will help you.
 
-## Initialization
+这带来的好处有：
 
-The generated service worker file (let’s call it `sw.js` for instance) get configuration by text interpolation when `sw-precache.js` populating `service-worker.tmpl` .
+### 1.小红想给小明书的时候，不必问小明什么时候有空，亲手把书交给他了，小红只把书放到书架上就行了。这样小红小明的时间都更自由。
 
-```js
-// service-worker.tmpl  
-var precacheConfig = <%= precacheConfig %>;
+### 2.小红相信小明的读书自觉和读书能力，不必亲眼观察小明的读书过程，小红只要做一个放书的动作，很节省时间。
 
-// sw.js  
-var precacheConfig = [  
-  ["js/a.js", "3cb4f0"],   
-  ["css/b.css", "c5a951"]  
-]
-```
+### 3.当明天有另一个爱读书的小伙伴小强加入，小红仍旧只需要把书放到书架上，小明和小强从书架上取书即可（唔，姑且设定成多个人取一本书可以每人取走一本吧，可能是拷贝电子书或复印，暂不考虑版权问题）。
 
-It’s not difficult to see that it’s a list of relative urls and MD5 hashes. In fact, one thing that `sw-precache.js` do in the build time is to calculate hash of each file that it asked to “precache” from `staticFileGlobs` parameter.
+### 4.书架上的书放在那里，小明阅读速度快就早点看完，阅读速度慢就晚点看完，没关系，比起小红把书递给小明并监督小明读完的方式，小明的压力会小一些。
 
-In `sw.js`, `precacheConfig` would be transformed into a ES6 Map with structure `Map {absoluteUrl => cacheKey}` as below. Noticed that I omit the origin part (e.g. `http://localhost`) for short.
 
-```js
-> urlToCacheKeys  
-< Map(2) {  
-  "http.../js/a.js" => "http.../js/a.js?_sw-precache=3cb4f0",   
-  "http.../css/b.js" => "http.../css/b.css?_sw-precache=c5a951"  
-}
-```
 
-Instead of using raw URL as the cache key, sw-precache append a `_sw-precache=[hash]` to the end of each URL when populating, updating its cache and even fetching these subresouces. Those `_sw-precache=[hash]` are what we called **cache-busting parameter\***. It can prevent service worker from responding and caching out-of-date responses found in browsers’ HTTP cache indefinitely.
+官方点说，这就是消息队列的四大好处：
 
-Because each build would re-calculate hashes and re-generate a new `sw.js` with new `precacheConfig` containing those new hashes, `sw.js` can now determine the version of each subresources thus decide what part of its cache needs a update. **This is pretty similar with what we commonly do when realizing long-term caching with webpack or gulp-rev, to do a byte-diff ahead of runtime.**
+### 1.解耦
 
-\*: Developer can opt out this behaviour with `dontCacheBustUrlsMatching` option if they set HTTP caching headers right. More details on [Jake’s Post](https://jakearchibald.com/2016/caching-best-practices/).
+每个成员不必受其他成员影响，可以更独立自主，只通过一个简单的容器来联系。
 
-## On Install
+小红甚至可以不知道从书架上取书的是谁，小明也可以不知道往书架上放书的人是谁，在他们眼里，都只有书架，没有对方。
 
-> ServiceWorker gives you an install event. You can use this to get stuff ready, stuff that must be ready before you handle other events.
+毫无疑问，与一个简单的容器打交道，比与复杂的人打交道容易一万倍，小红小明可以自由自在地追求各自的人生。
 
-During the `install` lifecycle, `sw.js` open the cache and get started to populate its cache. One cool thing that it does for you is its **incremental update** mechanism.
+###  2.提速
 
-Sw-precache would search each cache key (the values of `urlsToCacheKeys`) in the `cachedUrls`, a ES6 Set containing URLs of all requests indexed from current version of cache, and only `fetch` and `cache.put` resources couldn’t be found in cache, i.e, never be cached before, thus reuse cached resources as much as possible.
+小红选择相信「把书放到书架上，别的我不问」，为自己节省了大量时间。
 
-If you can not fully understand it, don’t worry. We will recap it later, now let’s move on.
+小红很忙，只能抽出五分钟时间，但这时间足够把书放到书架上了。
 
-## On Activate
+###  3.广播
 
-> Once a new ServiceWorker has installed & a previous version isn’t being used, the new one activates, and you get an `activate` event. Because the old version is out of the way, it's a good time to handle schema migrations in IndexedDB and also delete unused caches.
+小红只需要劳动一次，就可以让多个小伙伴有书可读，这大大地节省了她的时间，也让新的小伙伴的加入成本很低。
 
-During activation phase, `sw.js` would compare all existing requests in the cache, named `existingRequests` (noticed that it now contains resources just cached on installation phase) with `setOfExpectedUrls`, a ES6 Set from the values of `urlsToCacheKeys`. And delete any requests not matching from cache.
+###  4.削峰
 
-```js
-// sw.js
-existingRequests.map(function(existingRequest) {
-  if (!setOfExpectedUrls.has(existingRequest.url)) {
-    return cache.delete(existingRequest);
-  }
-})
-```
+假设小明读书很慢，如果采用小红每给一本书都监督小明读完的方式，小明有压力，小红也不耐烦。
 
-## On Fetch
+反正小红给书的频率也不稳定，如果今明两天连给了五本，之后隔三个月才又给一本，那小明只要在三个月内从书架上陆续取走五本书读完就行了，压力就不那么大了。
 
-Although the comments in source code have elaborated everything well, I wanna highlight some points during the request intercepting duration.
 
-### Should Respond?
 
-Firstly, we need to determine whether this request was included in our “pre-caching list”. If it was, this request should have been pre-fetched and pre-cached thus we can respond it directly from cache.
+当然，使用消息队列也有其成本：
 
-```js
-// sw.js*  
-var url = event.request.url      
-shouldRespond = urlsToCacheKeys.has(url);
-```
+###  1.引入复杂度
 
-Noticed that we are matching raw URLs (e.g. `http://localhost/js/a.js`) instead of the hashed ones. It prevent us from calculating hashes at runtime, which would have a significant cost. And since we have kept the relationship in `urlToCacheKeys` it’s easy to index the hashed one out.
+毫无疑问，「书架」这东西是多出来的，需要地方放它，还需要防盗。
 
-_\* In real cases, sw-precache would take `ignoreUrlParametersMatching` and `directoryIndex` options into consideration._
+###  2.暂时的不一致性
 
-### Navigation Fallback
+假如妈妈问小红「小明最近读了什么书」，在以前的方式里，小红因为亲眼监督小明读完书了，可以底气十足地告诉妈妈，但新的方式里，小红回答妈妈之后会心想「小明应该会很快看完吧……」
 
-One interesting feature that sw-precache provided is `navigationFallback`(previously `defaultRoute`), which detect navigation request and respond a preset fallback HTML document when the URL of navigation request did not exist in `urlsToCacheKeys`.
+这中间存在着一段「妈妈认为小明看了某书，而小明其实还没看」的时期，当然，小明最终的阅读状态与妈妈的认知会是一致的，这就是所谓的「最终一致性」。
 
-It is presented for SPA using History API based routing, allowing responding arbitrary URLs with one single HTML entry defined in `navigationFallback`, kinda reimplementing a Nginx rewrite in service worker\*. Do noticed that service worker only intercept document (navigation request) inside its scope (and any resources referenced in those documents of course). So navigation towards outside scope would not be effected.
 
-_\* `navigateFallbackWhitelist` can be provided to limit the “rewrite” scope._
+消息队列其中一种模式
 
-### Respond from Cache
+那么，该使用消息队列的情况需要满足什么条件呢？
 
-Finally, we get the appropriate cache key (the hashed URL) by raw URL with `urlsToCacheKeys` and invoke `event.respondWith()` to respond requests from cache directly. Done!
+###  1.生产者不需要从消费者处获得反馈
 
-```js
-// sw.js*
-event.respondWith(
-  caches.open(cacheName).then(cache => {
-    return cache.match(urlsToCacheKeys.get(url))
-      .then(response => {
-        if (response) return response;
-      });
-  })
-);
-```
+引入消息队列之前的直接调用，其接口的返回值应该为空，这才让明明下层的动作还没做，上层却当成动作做完了继续往后走——即所谓异步——成为了可能。
 
-_\* The code was “ES6-fied” with error handling part removed._
+小红放完书之后小明到底看了没有，小红根本不问，她默认他是看了，否则就只能用原来的方法监督到看完了。
 
-## Cache Management Recap
+###  2.容许短暂的不一致性
 
-That’s recap the cache management part with a full lifecycle simulation.
+妈妈可能会发现「有时候据说小明看了某书，但事实上他还没看」，只要妈妈满意于「反正他最后看了就行」，异步处理就没问题。
 
-### The first build
+如果妈妈对这情况不能容忍，对小红大发雷霆，小红也就不敢用书架方式了。
 
-Supposed we are in the very first load, the `cachedUrls` would be a empty set thus all subresources listed to be pre-cached would be fetched and put into cache on SW install time.
+### 3.确实是用了有效果
 
-```js
-// cachedUrls  
-Set(0) {}
+即解耦、提速、广播、削峰这些方面的收益，超过放置书架、监控书架这些成本。
 
-// urlToCacheKeys  
-Map(2) {  
-  "http.../js/a.js" => "http.../js/a.js?_sw-precache=3cb4f0",   
-  "http.../css/b.js" => "http.../css/b.css?_sw-precache=c5a951"  
-}
+否则如果是盲目照搬，「听说老赵家买了书架，咱们家也买一个」，买回来却没什么用，只是让步骤变多了，还不如直接把书递给对方呢，那就不对了。
 
-// SW Network Logs  
-[sw] GET a.js?_sw-precache=3cb4f0      
-[sw] GET b.css?_sw-precache=c5a951
-```
-
-After that, it will start to control the page immediately because the `sw.js` would call `clients.claim()` by default. It means the `sw.js` will start to intercept and try to serve future fetches from caches, so it’s good for performance.
-
-In the second load, all subresouces have been cached and will be served directly from cache. So none requests are sent from `sw.js`.
-
-```js
-// cachedUrls  
-Set(2) {  
-  "http.../js/a.js? _sw-precache=3cb4f0",   
-  "http.../css/b.css? _sw-precache=c5a951"  
-}
-
-// urlToCacheKeys  
-Map(2) {  
-  "http.../js/a.js" => "http.../js/a.js? _sw-precache=3cb4f0",   
-  "http.../css/b.js" => "http.../css/b.css? _sw-precache=c5a951"  
-}
-
-// SW Network Logs  
-// Empty
-```
-
-### The second build
-
-Once we create a byte-diff of our subresouces (e.g., we modify `a.js` to a new version with hash value `d6420f`) and re-run the build process, a new version of `sw.js` would be also generated.
-
-The new `sw.js` would run alongside with the existing one, and start its own installation phase.
-
-```js
-// cachedUrls  
-Set(2) {  
-  "http.../js/a.js? _sw-precache=3cb4f0",   
-  "http.../css/b.css? _sw-precache=c5a951"  
-}
-
-// urlToCacheKeys  
-Map(2) {  
-  "http.../js/a.js" => "http.../js/a.js? _sw-precache=d6420f",   
-  "http.../css/b.js" => "http.../css/b.css? _sw-precache=c5a951"  
-}
-
-// SW Network Logs  
- [sw] GET a.js?_sw-precache=d6420f
-```
-
-This time, `sw.js` see that there is a new version of `a.js` requested, so it fetch `/js/a.js?_sw-precache=d6420f`  and put the response into cache. In fact, we have two versions of `a.js` in cache at the same time in this moment.
-
-```js
-// what's in cache?
-http.../js/a.js?_sw-precache=3cb4f0
-http.../js/a.js?_sw-precache=d6420f
-http.../css/b.css?_sw-precache=c5a951
-```
-
-By default, `sw.js` generated by sw-precache would call `self.skipWaiting` so it would take over the page and move onto activating phase immediately.
-
-```js
-// existingRequests
-http.../js/a.js?_sw-precache=3cb4f0
-http.../js/a.js?_sw-precache=d6420f
-http.../css/b.css?_sw-precache=c5a951
-
-// setOfExpectedUrls
-Set(2) {
-  "http.../js/a.js?_sw-precache=d6420f", 
-  "http.../css/b.css?_sw-precache=c5a951"
-}
-
-// the one deleted
-http.../js/a.js?_sw-precache=3cb4f0
-```
-
-By comparing existing requests in the cache with set of expected ones, the old version of `a.js` would be deleted from cache. This ensure there is only one version of our site’s resources each time.
-
-That’s it! We finish the simulation successfully.
-
-## Conclusions
-
-As its name implied, sw-precache is designed specifically for the needs of precaching some critical static resources. It only does one thing but does it well. I’d love to give you some opinionated suggestions but you decide whether your requirements suit it or not.
-
-### Precaching is NOT free
-
-So don’t precached everything. Sw-precache use a [“On Install — as a dependency”](https://jakearchibald.com/2014/offline-cookbook/#on-install-as-a-dependency) strategy for your precache configs. A huge list of requests would delay the time service worker finishing installing and, in addition, wastes users’ bandwidth and disk space.
-
-For instance, if you wanna build a offline-capable blogs. You had better not include things like `'posts/*.html` in `staticFileGlobs`. It would be a huge disaster to data-sensitive people if you have hundreds of posts. Use a Runtime Caching instead.
-
-### “App Shell”
-
-> A helpful analogy is to think of your App Shell as the code and resources that would be published to an app store for a native iOS or Android application.
-
-Though I always consider that the term “App Shell” is too narrow to cover its actual usages now, It is widely used and commonly known. I personally prefer calling them **“Web Installation Package”** straightforward because they can be truly installed into users’ disks and our web app can boot up directly from them in any network environments. The only difference between “Web Installation Package” and iOS/Android App is that we need strive to limit it within a reasonable size.
-
-Precaching is perfect for this kinda resources such as entry html, visual placeholders, offline pages etc., because they can be static in one version, small-sized, and most importantly, part of critical rendering path. We wanna put first meaningful paint ASAP to our user thus we precache them to eliminate HTTP roundtrip time.
-
-BTW, if you are using HTML5 Application Cache before, sw-precache is really a perfect replacement because it can cover nearly all use cases the App Cache provide.
-
-### This is not the end
-
-Sw-precache is just one of awesome tools that can help you build service worker. If you are planing to add some service worker power into your website, Don’t hesitate to checkout sw-toolbox, sw-helper (a new tool Google is working on) and many more from communities.
-
-That’s all. Wish you enjoy!
+所以在软件的正常功能开发中，并不需要去刻意的寻找消息队列的使用场景，而是当出现性能瓶颈时，去查看业务逻辑是否存在可以异步处理的耗时操作，如果存在的话便可以引入消息队列来解决。否则盲目的使用消息队列可能会增加维护和开发的成本却无法得到可观的性能提升，那就得不偿失了。
